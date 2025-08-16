@@ -15,10 +15,24 @@ const inputElevation = document.querySelector('.form__input--elevation');
 if (navigator.geolocation) {
   navigator.geolocation.getCurrentPosition(
     function (position) {
+      // coordinate: latitude, longitude
       const { latitude } = position.coords;
       const { longitude } = position.coords;
       console.log(position), console.log(latitude, longitude);
       console.log(`https://www.google.com/maps/@${latitude},${longitude}`);
+
+      // coordinate: latitude, longitude
+      const coordinates = [latitude, longitude];
+      const map = L.map('map').setView(coordinates, 16);
+
+      // tile layer
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(map);
+
+      // marker
+      L.marker(coordinates).addTo(map).bindPopup(`You're here`).openPopup();
     },
     function () {
       alert(`Could not get your location`);
