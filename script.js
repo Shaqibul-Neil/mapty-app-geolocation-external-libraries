@@ -11,22 +11,30 @@ const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 
-//creating custom map icon
-const myIcon = L.icon({
-  iconUrl: 'run.png',
-  iconSize: [30, 35],
-});
-
 class App {
   #map;
   #mapEvent;
+  #myIcon;
+  //constructor
   constructor() {
+    //setting the icon
+    this.#myIcon = {
+      running: L.icon({
+        iconUrl: 'run.png',
+        iconSize: [30, 30],
+      }),
+      cycling: L.icon({
+        iconUrl: 'bicycle.png',
+        iconSize: [30, 30],
+      }),
+    };
     this._getPosition();
+    //form events
     form.addEventListener('submit', this._newWorkout.bind(this));
     //change event of inputs
     inputType.addEventListener('change', this._toggleElevationField);
   }
-
+  //methods
   //getting the location
   _getPosition() {
     //geolocation
@@ -111,7 +119,10 @@ class App {
     //console.log(mapEvent);
 
     const { lat, lng } = this.#mapEvent.latlng;
-    L.marker([lat, lng], { icon: myIcon })
+    //selecting the icon according to the type
+    const type = inputType.value;
+    const selectedIcon = this.#myIcon[type];
+    L.marker([lat, lng], { icon: selectedIcon })
       .addTo(this.#map)
       .bindPopup(
         L.popup({
@@ -119,13 +130,12 @@ class App {
           minWidth: 100,
           autoClose: false,
           closeOnClick: false,
-          className: 'running-popup',
+          className: `${type}-popup`,
         })
       )
-      .setPopupContent(`Workout`)
+      .setPopupContent(`${type} Workout`)
       .openPopup();
   }
 }
 
 const app = new App();
-//app._showForm();
