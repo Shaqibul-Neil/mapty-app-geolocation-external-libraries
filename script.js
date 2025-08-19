@@ -11,96 +11,121 @@ const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 
-let map, mapEvent;
 //creating custom map icon
 const myIcon = L.icon({
   iconUrl: 'run.png',
   iconSize: [30, 35],
 });
 
-//geolocation
-if (navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(
-    function (position) {
-      // coordinate: latitude, longitude
-      const { latitude } = position.coords;
-      const { longitude } = position.coords;
+class App {
+  #map;
+  #mapEvent;
+  constructor() {
+    this._getPosition();
+    form.addEventListener('submit', this._newWorkout.bind(this));
+    //change event of inputs
+    inputType.addEventListener('change', this._toggleElevationField);
+  }
 
-      //console.log(position), console.log(latitude, longitude);
-      //console.log(`https://www.google.com/maps/@${latitude},${longitude}`);
-
-      // coordinate: latitude, longitude
-      const coordinates = [latitude, longitude];
-      map = L.map('map').setView(coordinates, 16);
-
-      // tile layer
-      //openstreetmap
-      // L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      //   attribution:
-      //     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      // }).addTo(map);
-
-      //google map
-      L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-        maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-      }).addTo(map);
-
-      // marker
-
-      //console.log(map);
-      // console.log(L);
-      // console.log(L.marker());
-      // console.log(L.tileLayer());
-      // console.log(L.popup());
-
-      /*কেন map.on ব্যবহার করছি, সাধারণ addEventListener না? কারণ সাধারণ JS event দিলে coordinate (latitude/longitude) পাওয়া যেত না। কিন্তু Leaflet এর event দিলে exact GPS coordinate পাওয়া যায়।*/
-
-      //handling click on map
-      map.on('click', function (mapE) {
-        //console.log(mapE);
-        mapEvent = mapE;
-        //console.log(mapEvent);
-        form.classList.remove('hidden');
-        inputDistance.focus();
-      });
-    },
-    function () {
-      alert(`Could not get your location`);
+  //getting the location
+  _getPosition() {
+    //geolocation
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        this._loadMap.bind(this),
+        function () {
+          alert(`Could not get your location`);
+        }
+      );
     }
-  );
+  }
+
+  //exact coordinates in map
+  _loadMap(position) {
+    // coordinate: latitude, longitude
+    const { latitude } = position.coords;
+    const { longitude } = position.coords;
+
+    //console.log(position), console.log(latitude, longitude);
+    //console.log(`https://www.google.com/maps/@${latitude},${longitude}`);
+
+    // coordinate: latitude, longitude
+    //console.log(this);
+    const coordinates = [latitude, longitude];
+    this.#map = L.map('map').setView(coordinates, 16);
+
+    // tile layer
+    //openstreetmap
+    // L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    //   attribution:
+    //     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    // }).addTo(map);
+
+    //google map
+    L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    }).addTo(this.#map);
+
+    // marker
+    //console.log(map);
+    // console.log(L);
+    // console.log(L.marker());
+    // console.log(L.tileLayer());
+    // console.log(L.popup());
+
+    /*কেন map.on ব্যবহার করছি, সাধারণ addEventListener না? কারণ সাধারণ JS event দিলে coordinate (latitude/longitude) পাওয়া যেত না। কিন্তু Leaflet এর event দিলে exact GPS coordinate পাওয়া যায়।*/
+
+    //handling click on map
+    this.#map.on(
+      'click',
+      this._showForm.bind(this)
+    ); /*this._showForm :এখন showForm method একটা event handler। JavaScript এ যখন কোনো method event handler হিসেবে call হয়, তখন this সেট হয় ওই element বা object কে যা event listener এ attach করা হয়েছে। Event handler function এ by default this সেই element কে point করে, যেটাতে listener attach করা হয়েছে .এই ক্ষেত্রে, আমরা listener attach করেছি map এ → তাই this এখন map কে point করছে। আমরা চাইছিলাম showForm method এর ভিতরে this.#mapEvent access করতে।কিন্তু যেহেতু this map কে point করছে, তাই আমরা App class এর (mapEvent কে App class এর private property) property access করতে পারছি না।ফলে error আসে: Cannot set property #mapEvent of undefined. আমাদের দরকার this App object কে point করুক।তাই আমরা bind করি:this.#map.on("click", this.showForm.bind(this)); bind(this) করে এখন event handler চললেও: this → App object কে point করবে। আমরা safely access করতে পারব: this.#mapEvent */
+  }
+
+  //showing the workout form
+  _showForm(mapE) {
+    this.#mapEvent = mapE;
+    //console.log(mapEvent);
+    form.classList.remove('hidden');
+    inputDistance.focus();
+  }
+
+  //changing the input field
+  _toggleElevationField() {
+    inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
+    inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
+  }
+
+  //creating new workout form
+  _newWorkout(e) {
+    e.preventDefault();
+    console.log(this);
+    //clear input fields
+    inputDistance.value =
+      inputCadence.value =
+      inputDuration.value =
+      inputElevation.value =
+        '';
+    //display marker
+    //console.log(mapEvent);
+
+    const { lat, lng } = this.#mapEvent.latlng;
+    L.marker([lat, lng], { icon: myIcon })
+      .addTo(this.#map)
+      .bindPopup(
+        L.popup({
+          maxWidth: 250,
+          minWidth: 100,
+          autoClose: false,
+          closeOnClick: false,
+          className: 'running-popup',
+        })
+      )
+      .setPopupContent(`Workout`)
+      .openPopup();
+  }
 }
 
-form.addEventListener('submit', function (e) {
-  e.preventDefault();
-  //clear input fields
-  inputDistance.value =
-    inputCadence.value =
-    inputDuration.value =
-    inputElevation.value =
-      '';
-  //display marker
-  //console.log(mapEvent);
-
-  const { lat, lng } = mapEvent.latlng;
-  L.marker([lat, lng], { icon: myIcon })
-    .addTo(map)
-    .bindPopup(
-      L.popup({
-        maxWidth: 250,
-        minWidth: 100,
-        autoClose: false,
-        closeOnClick: false,
-        autoPan: true,
-        className: 'running-popup',
-      })
-    )
-    .setPopupContent(`Workout`)
-    .openPopup();
-});
-
-//change event of inputs
-inputType.addEventListener('change', function () {
-  inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
-  inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
-});
+const app = new App();
+//app._showForm();
