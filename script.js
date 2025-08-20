@@ -27,6 +27,7 @@ class Workout {
 //child classes running and cycling
 class Running extends Workout {
   type = 'running'; //type add krlam
+
   constructor(coords, distance, duration, cadence) {
     super(coords, distance, duration);
     this.cadence = cadence;
@@ -41,10 +42,12 @@ class Running extends Workout {
 }
 class Cycling extends Workout {
   type = 'cycling';
+
   constructor(coords, distance, duration, elevationGain) {
     super(coords, distance, duration);
     this.elevationGain = elevationGain;
     this.calcSpeed();
+    //this.type = 'cycling'
   }
   //method for calculating speed: Speed is distance traveled per unit of time
   calcSpeed() {
@@ -241,6 +244,7 @@ class App {
       .openPopup();
     */
     this.renderWorkoutMarker(workout);
+
     //Render workout on the list
 
     //Hide form + clear input fields
@@ -254,13 +258,13 @@ class App {
   renderWorkoutMarker(workout) {
     // const { lat, lng } = this.#mapEvent.latlng;
     //L.marker e error dekhai karon---
-    /*renderWorkoutMarker() method-এর ভিতরে তুমি lat এবং lng variable use করছ, কিন্তু এগুলো local scope-এ _newWorkout method-এর মধ্যে declare করা হয়েছিল। renderWorkoutMarker()-এর scope-এ এগুলো নেই। Solution: Workout object-এর সাথে coords already আছে। তাই renderWorkoutMarker()-এ lat, lng destructure করে workout.coords থেকে নাও। এভাবে lat এবং lng সবসময় workout object থেকে আসবে, আর type error বা undefined variable error আর আসবে না।*/
+    /*renderWorkoutMarker() method-এর ভিতরে তুমি lat এবং lng variable use করছ, কিন্তু এগুলো local scope-এ _newWorkout method-এর মধ্যে declare করা হয়েছিল। renderWorkoutMarker()-এর scope-এ এগুলো নেই। Solution: Workout object-এর সাথে coords already আছে। তাই renderWorkoutMarker()-এ lat, lng destructure করে workout.coords থেকে নাও। এভাবে lat এবং lng সবসময় workout object থেকে আসবে, আর type error বা undefined variable error আর আসবে না। or sorasori  workout.coords likhe dao;*/
 
-    const [lat, lng] = workout.coords;
+    //const [lat, lng] = workout.coords;
 
     //selecting the icon according to the type
     const selectedIcon = this.#myIcon[workout.type];
-    L.marker([lat, lng], { icon: selectedIcon })
+    L.marker(workout.coords, { icon: selectedIcon })
       .addTo(this.#map)
       .bindPopup(
         L.popup({
