@@ -3,6 +3,8 @@
 // prettier-ignore
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+const textInfo = document.querySelector('.text-info');
+const formInfo = document.querySelector('.form-info');
 const form = document.querySelector('.form');
 const containerWorkouts = document.querySelector('.workouts');
 const inputType = document.querySelector('.form__input--type');
@@ -24,6 +26,7 @@ class Workout {
 
 //child classes running and cycling
 class Running extends Workout {
+  type = 'running'; //type add krlam
   constructor(coords, distance, duration, cadence) {
     super(coords, distance, duration);
     this.cadence = cadence;
@@ -37,6 +40,7 @@ class Running extends Workout {
   }
 }
 class Cycling extends Workout {
+  type = 'cycling';
   constructor(coords, distance, duration, elevationGain) {
     super(coords, distance, duration);
     this.elevationGain = elevationGain;
@@ -61,6 +65,7 @@ class App {
   #map;
   #mapEvent;
   #myIcon;
+  #workouts = [];
   //constructor
   constructor() {
     //setting the icon
@@ -141,6 +146,8 @@ class App {
   _showForm(mapE) {
     this.#mapEvent = mapE;
     //console.log(mapEvent);
+    textInfo.classList.add('hideText');
+    formInfo.classList.remove('hideText');
     form.classList.remove('hidden');
     inputDistance.focus();
   }
@@ -154,19 +161,60 @@ class App {
   //creating new workout form
   _newWorkout(e) {
     e.preventDefault();
-    console.log(this);
-    //clear input fields
-    inputDistance.value =
-      inputCadence.value =
-      inputDuration.value =
-      inputElevation.value =
-        '';
-    //display marker
-    //console.log(mapEvent);
 
-    const { lat, lng } = this.#mapEvent.latlng;
-    //selecting the icon according to the type
+    //Get data from form
     const type = inputType.value;
+    const distance = +inputDistance.value;
+    const duration = +inputDuration.value;
+    //getting lat lng from the obj
+    const { lat, lng } = this.#mapEvent.latlng;
+    //creating workout
+    let workout;
+
+    //helper function to check input data. using rest as parameter gives us an array of inputs. that means now we'll loop over the array and see if input is a number or not
+    const validInputs = (...inputs) =>
+      inputs.every(inp => Number.isFinite(inp));
+    // checking if the inputs are positive except for elevation gain
+    const allPositive = (...inputs) => inputs.every(inp => inp > 0);
+
+    //If workout running, create running object. we'll get cadence input data only if the type is running
+    if (type === 'running') {
+      const cadence = +inputCadence.value;
+
+      //check if the data is valid
+      if (
+        !validInputs(distance, duration, cadence) ||
+        !allPositive(distance, duration, cadence)
+      )
+        return alert(`Please Provide a Positive Number`);
+
+      workout = new Running([lat, lng], distance, duration, cadence); //running class e bola hoyeche je ata akta array nibe coords ta. ty this.#mapEvent.latlng eta use krinai. etake destructure kore niyechi.
+
+      // this.#workouts.push(workout); // eta running cycling 2 jaigatei lagbe ty 2ta if block e 2br na die sorasori byre die dei.bt jehetu workout variable ta if block er byre access pawa jabena ty workout take block er byre declare kore dn just eikhane value boshabo
+    }
+
+    //If workout cycling, create cycling object. we'll get elevation gain input data only if the type is cycling. for cycling elevation can be negative cz u can go downhill;
+    if (type === 'cycling') {
+      const elevationGain = +inputElevation.value;
+      //check if the data is valid
+      if (
+        !validInputs(distance, duration, elevationGain) ||
+        !allPositive(distance, duration)
+      )
+        return alert(`Please Provide a Positive Number`);
+
+      workout = new Cycling([lat, lng], distance, duration, elevationGain);
+      // this.#workouts.push(workout);
+    }
+
+    //Add new object to workout array
+    this.#workouts.push(workout);
+    console.log(workout);
+
+    //Render workout on the map as marker
+    // const { lat, lng } = this.#mapEvent.latlng;
+    //selecting the icon according to the type
+    /*
     const selectedIcon = this.#myIcon[type];
     L.marker([lat, lng], { icon: selectedIcon })
       .addTo(this.#map)
@@ -179,7 +227,61 @@ class App {
           className: `${type}-popup`,
         })
       )
-      .setPopupContent(`${type[0].toUpperCase() + type.slice(1)} Workout`)
+      .setPopupContent(
+        `${
+          type[0].toUpperCase() + type.slice(1)
+        } Workout on ${workout.date.toLocaleString('en-Us', {
+          day: '2-digit',
+          month: '2-digit',
+          year: '2-digit',
+          // hour: '2-digit',
+          // minute: '2-digit',
+        })}`
+      )
+      .openPopup();
+    */
+    this.renderWorkoutMarker(workout);
+    //Render workout on the list
+
+    //Hide form + clear input fields
+    inputDistance.value =
+      inputCadence.value =
+      inputDuration.value =
+      inputElevation.value =
+        '';
+  }
+  //Render workout on the map as marker
+  renderWorkoutMarker(workout) {
+    // const { lat, lng } = this.#mapEvent.latlng;
+    //L.marker e error dekhai karon---
+    /*renderWorkoutMarker() method-এর ভিতরে তুমি lat এবং lng variable use করছ, কিন্তু এগুলো local scope-এ _newWorkout method-এর মধ্যে declare করা হয়েছিল। renderWorkoutMarker()-এর scope-এ এগুলো নেই। Solution: Workout object-এর সাথে coords already আছে। তাই renderWorkoutMarker()-এ lat, lng destructure করে workout.coords থেকে নাও। এভাবে lat এবং lng সবসময় workout object থেকে আসবে, আর type error বা undefined variable error আর আসবে না।*/
+
+    const [lat, lng] = workout.coords;
+
+    //selecting the icon according to the type
+    const selectedIcon = this.#myIcon[workout.type];
+    L.marker([lat, lng], { icon: selectedIcon })
+      .addTo(this.#map)
+      .bindPopup(
+        L.popup({
+          maxWidth: 250,
+          minWidth: 100,
+          autoClose: false,
+          closeOnClick: false,
+          className: `${workout.type}-popup`,
+        })
+      )
+      .setPopupContent(
+        `${
+          workout.type[0].toUpperCase() + workout.type.slice(1)
+        } Workout on ${workout.date.toLocaleString('en-Us', {
+          day: '2-digit',
+          month: '2-digit',
+          year: '2-digit',
+          // hour: '2-digit',
+          // minute: '2-digit',
+        })}`
+      )
       .openPopup();
   }
 }
