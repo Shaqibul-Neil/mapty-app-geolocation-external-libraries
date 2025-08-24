@@ -32,6 +32,13 @@ class Workout {
   click() {
     this.clicks++;
   }
+  //to restore prototype chain and inheritance
+  static fromData(work) {
+    if (work.type === 'running')
+      return Object.assign(new Running([], 0, 0, 0), work);
+    if (work.type === 'cycling')
+      return Object.assign(new Cycling([], 0, 0, 0), work);
+  }
 }
 
 //child classes running and cycling
@@ -95,6 +102,7 @@ class App {
         iconSize: [30, 30],
       }),
     };
+    //get user's positions
     this._getPosition();
     //form events
     form.addEventListener('submit', this._newWorkout.bind(this));
@@ -102,6 +110,8 @@ class App {
     inputType.addEventListener('change', this._toggleElevationField);
     //Move to Marker On Click
     containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
+    //get data from local storage
+    this._getLocalStorage();
   }
   //methods
   //getting the location
@@ -158,6 +168,11 @@ class App {
       'click',
       this._showForm.bind(this)
     ); /*this._showForm :এখন showForm method একটা event handler। JavaScript এ যখন কোনো method event handler হিসেবে call হয়, তখন this সেট হয় ওই element বা object কে যা event listener এ attach করা হয়েছে। Event handler function এ by default this সেই element কে point করে, যেটাতে listener attach করা হয়েছে .এই ক্ষেত্রে, আমরা listener attach করেছি map এ → তাই this এখন map কে point করছে। আমরা চাইছিলাম showForm method এর ভিতরে this.#mapEvent access করতে।কিন্তু যেহেতু this map কে point করছে, তাই আমরা App class এর (mapEvent কে App class এর private property) property access করতে পারছি না।ফলে error আসে: Cannot set property #mapEvent of undefined. আমাদের দরকার this App object কে point করুক।তাই আমরা bind করি:this.#map.on("click", this.showForm.bind(this)); bind(this) করে এখন event handler চললেও: this → App object কে point করবে। আমরা safely access করতে পারব: this.#mapEvent */
+
+    //render from local storage on map
+    this.#workouts.forEach(work => {
+      this._renderWorkoutMarker(work);
+    });
   }
 
   //showing the workout form
@@ -278,6 +293,9 @@ class App {
 
     //Hide form + clear input fields
     this._hideForm();
+
+    //set local storage to all workouts
+    this._setLocalStorage();
   }
   //Render workout on the map as marker
   _renderWorkoutMarker(workout) {
@@ -308,18 +326,21 @@ class App {
   //Render workout on the list
   _renderWorkoutForm(workout) {
     //defining the variables
-    const workoutTime = workout.date.toLocaleString('en-US', {
+    const workoutTime = new Date(workout.date).toLocaleString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true,
     });
+    /*localStorage এ save করার সময় Date object → string এ convert হয়। আবার retrieve করলে সেটা string থেকে যায়, আর তার মেথড (যেমন .getMonth()) আর কাজ করে না। তাই new Date(workout.date) করে আবার Date object বানাতে হবে, তারপর toLocaleString() বা toDateString() দিয়ে format করতে হবে। */
+
+    //console.log(workoutTime);
     const workoutTypeIcon = workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️';
     const paceOrSpeed =
       workout.type === 'running'
         ? workout.pace.toFixed(2)
         : workout.speed.toFixed(2);
     const unitPaceSpeed = workout.type === 'running' ? 'min/km' : 'km/hr';
-    const workoutDetailsIcon = workout.type === 'running' ? '🦶🏼' : '⛰';
+    const workoutDetailsIcon = workout.type === 'running' ? '🙌' : '🎢';
     const workoutDetailsValue =
       workout.type === 'running' ? workout.cadence : workout.elevationGain;
     const workoutDetailsUnit = workout.type === 'running' ? 'spm' : 'm';
@@ -360,6 +381,7 @@ class App {
   }
   //Move to Marker On Click
   _moveToPopup(e) {
+    /*এখনই যেহেতু workout list ডাইনামিক → page load-এর সময় কোন workout নেই। তাই সরাসরি workout element-এ event listener attach করা যাবে না। সমাধান: Event delegation. Parent element কে target করো → এখানে containerWorkouts (যেখানে সব workout list আছে)। Parent element-এ click listener attach করলে → ভিতরের কোন child ক্লিক হল সেটা ধরে নেওয়া যায়। */
     const workoutEl = e.target.closest('.workout');
     //console.log(workoutEl);
     if (!workoutEl) return;
@@ -376,6 +398,32 @@ class App {
     //using public interface
     workout.click();
     //console.log(workout);
+  }
+  //set local storage to all workouts
+  _setLocalStorage() {
+    localStorage.setItem('workouts', JSON.stringify(this.#workouts));
+  }
+  //get local storage
+  _getLocalStorage() {
+    const data = JSON.parse(localStorage.getItem('workouts'));
+    //console.log(data);
+
+    //if no data found guard clause
+    if (!data) return;
+    //adding the local storage's data to the workouts array
+    //this.#workouts = data;
+    //reading data
+    this.#workouts = data.map(work => Workout.fromData(work));
+    //prototype chain restored
+    // console.log(this.#workouts[0] instanceof Running); // true
+    // console.log(this.#workouts[0].click); // ƒ click() { … }
+    // this.#workouts[0].click();
+
+    //render from local storage on list
+    this.#workouts.forEach(work => {
+      this._renderWorkoutForm(work);
+      //this._renderWorkoutMarker(work);
+    });
   }
 }
 
