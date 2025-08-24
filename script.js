@@ -425,6 +425,18 @@ class App {
       //this._renderWorkoutMarker(work);
     });
   }
+  //to delete local storage
+  reset() {
+    localStorage.removeItem('workouts');
+    location.reload();
+  }
 }
 
 const app = new App();
+
+/*LocalStorage এর সময়
+তুমি object save করো → stringify (JSON.stringify) → localStorage এ রাখো।
+
+পরে আবার নিলে → parse (JSON.parse) → কিন্তু এভাবে আসলে শুধু plain object পাওয়া যায় (class এর instance না)।
+
+তাই আবার method গুলো পেতে হলে instance বানাতে হয় (তুমি map / static method দিয়ে সেটা করছো)। */
