@@ -92,23 +92,26 @@ a:visited {
 .workout__title {
   font-size: 1.7rem;
   font-weight: 600;
+  letter-spacing: 1px;
   grid-column: 1 / -1;
 }
 
 .workout__details {
   display: flex;
+  gap: 4px;
+  justify-content: space-evenly;
   align-items: baseline;
 }
 
 .workout__icon {
   font-size: 1.8rem;
-  margin-right: 0.2rem;
+  /* margin-right: 0.2rem; */
   height: 0.28rem;
 }
 
 .workout__value {
   font-size: 1.5rem;
-  margin-right: 0.5rem;
+  /* margin-right: 0.5rem; */
 }
 
 .workout__unit {
