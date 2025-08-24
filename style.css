@@ -69,7 +69,11 @@ a:visited {
   font-size: 20px;
 }
 .workouts::-webkit-scrollbar {
-  width: 0;
+  width: 5px;
+}
+.workouts::-webkit-scrollbar-thumb {
+  background-color: var(--color-light--2);
+  border-radius: 10px;
 }
 .workout {
   background-color: var(--color-dark--2);
