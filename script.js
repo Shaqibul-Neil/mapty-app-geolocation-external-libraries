@@ -14,6 +14,7 @@ const inputElevation = document.querySelector('.form__input--elevation');
 class Workout {
   date = new Date();
   id = Date.now().toString(); //creating unique id by converting date into string. bt in real life we shd use a library to create unique id
+  clicks = 0;
   constructor(coords, distance, duration) {
     this.coords = coords; //[lat,lng]
     this.distance = distance; //in km
@@ -27,6 +28,9 @@ class Workout {
     this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${
       months[this.date.getMonth()]
     } ${this.date.getDate()}`;
+  }
+  click() {
+    this.clicks++;
   }
 }
 
@@ -75,6 +79,7 @@ class Cycling extends Workout {
 class App {
   #map;
   #mapEvent;
+  #mapZoomLevel = 16;
   #myIcon;
   #workouts = [];
   //constructor
@@ -95,6 +100,8 @@ class App {
     form.addEventListener('submit', this._newWorkout.bind(this));
     //change event of inputs
     inputType.addEventListener('change', this._toggleElevationField);
+    //Move to Marker On Click
+    containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
   }
   //methods
   //getting the location
@@ -122,7 +129,7 @@ class App {
     // coordinate: latitude, longitude
     //console.log(this);
     const coordinates = [latitude, longitude];
-    this.#map = L.map('map').setView(coordinates, 16);
+    this.#map = L.map('map').setView(coordinates, this.#mapZoomLevel);
 
     // tile layer
     //openstreetmap
@@ -162,7 +169,20 @@ class App {
     form.classList.remove('hidden');
     inputDistance.focus();
   }
-
+  //hiding the workout form
+  _hideForm() {
+    // clear input fields
+    inputDistance.value =
+      inputCadence.value =
+      inputDuration.value =
+      inputElevation.value =
+        '';
+    textInfo.classList.remove('hideText');
+    form.style.display = 'none';
+    formInfo.classList.add('hideText');
+    form.classList.add('hidden');
+    setTimeout(() => (form.style.display = 'grid'), 1000);
+  }
   //changing the input field
   _toggleElevationField() {
     inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
@@ -220,7 +240,7 @@ class App {
 
     //Add new object to workout array
     this.#workouts.push(workout);
-    console.log(workout);
+    //console.log(workout);
 
     //Render workout on the map as marker
     // const { lat, lng } = this.#mapEvent.latlng;
@@ -255,12 +275,9 @@ class App {
 
     //Render workout on the list
     this._renderWorkoutForm(workout);
+
     //Hide form + clear input fields
-    inputDistance.value =
-      inputCadence.value =
-      inputDuration.value =
-      inputElevation.value =
-        '';
+    this._hideForm();
   }
   //Render workout on the map as marker
   _renderWorkoutMarker(workout) {
@@ -283,10 +300,12 @@ class App {
           className: `${workout.type}-popup`,
         })
       )
-      .setPopupContent(`${workout.description}`)
+      .setPopupContent(
+        `${workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️'} ${workout.description}`
+      )
       .openPopup();
   }
-
+  //Render workout on the list
   _renderWorkoutForm(workout) {
     //defining the variables
     const workoutTime = workout.date.toLocaleString('en-US', {
@@ -337,16 +356,26 @@ class App {
     </li>`;
 
     form.insertAdjacentHTML('afterEnd', HTML);
-    /*কেন ul নয়?
-যদি আমরা <ul> কে target করি:
-containerWorkouts.insertAdjacentHTML('afterbegin', HTML);
-এটা নতুন element কে ul-এর শুরুতে বসাবে → form এর আগে।
-আবার beforeend দিলে সবশেষে যাবে → form-এর পরে না, বরং সব existing workouts এর শেষে।
-আমরা চাই form-এর ঠিক পরেই। form.insertAdjacentHTML('afterend', HTML) বলছে:
-“এই form element এর ঠিক পরে HTML বসাও” 
-Parent element কে target করলে: start বা end এ add হবে → ঠিক নির্দিষ্ট জায়গায় control কম।
-যেই element-এর ঠিক পরেই বসাতে চাও → সেই element কে target কর।
-এখানে আমরা চাই form-এর ঠিক পরে, তাই form। */
+    /*কেন ul নয়? যদি আমরা <ul> কে target করি: containerWorkouts.insertAdjacentHTML('afterbegin', HTML); এটা নতুন element কে ul-এর শুরুতে বসাবে → form এর আগে। আবার beforeend দিলে সবশেষে যাবে → form-এর পরে না, বরং সব existing workouts এর শেষে। আমরা চাই form-এর ঠিক পরেই। form.insertAdjacentHTML('afterend', HTML) বলছে: “এই form element এর ঠিক পরে HTML বসাও” Parent element কে target করলে: start বা end এ add হবে → ঠিক নির্দিষ্ট জায়গায় control কম। যেই element-এর ঠিক পরেই বসাতে চাও → সেই element কে target কর।এখানে আমরা চাই form-এর ঠিক পরে, তাই form। */
+  }
+  //Move to Marker On Click
+  _moveToPopup(e) {
+    const workoutEl = e.target.closest('.workout');
+    //console.log(workoutEl);
+    if (!workoutEl) return;
+    const workout = this.#workouts.find(
+      work => work.id === workoutEl.dataset.id
+    );
+    //console.log(workout);
+    this.#map.setView(workout.coords, this.#mapZoomLevel, {
+      animate: true,
+      pan: {
+        duration: 1,
+      },
+    });
+    //using public interface
+    workout.click();
+    //console.log(workout);
   }
 }
 
